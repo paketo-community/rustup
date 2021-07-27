@@ -4,13 +4,13 @@ The Paketo Rustup Buildpack is a Cloud Native Buildpack that installs and execut
 
 ## Behavior
 
-This buildpack will participate all the following conditions are met
-
-*
+* Another buildpack requires `rustup`
+* Another buildpack requires `rust`
 
 The buildpack will do the following:
 
-*
+* Contributes Rustup to a layer marked `build` and `cache` with command on `$PATH`
+* Executes `rustup` to install the latest version of Rust
 
 ## License
 

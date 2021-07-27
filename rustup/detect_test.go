@@ -14,19 +14,41 @@
  * limitations under the License.
  */
 
-package main
+package rustup_test
 
 import (
-	"os"
+	"testing"
 
 	"github.com/buildpacks/libcnb"
-	"github.com/paketo-buildpacks/libpak/bard"
+	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/rustup/rustup"
+	"github.com/sclevine/spec"
 )
 
-func main() {
-	libcnb.Main(
-		rustup.Detect{},
-		rustup.Build{Logger: bard.NewLogger(os.Stdout)},
+func testDetect(t *testing.T, context spec.G, it spec.S) {
+	var (
+		Expect = NewWithT(t).Expect
+
+		ctx    libcnb.DetectContext
+		detect rustup.Detect
 	)
+
+	it("includes build plan options", func() {
+		Expect(detect.Detect(ctx)).To(Equal(libcnb.DetectResult{
+			Pass: true,
+			Plans: []libcnb.BuildPlan{
+				{
+					Provides: []libcnb.BuildPlanProvide{
+						{Name: "rustup"},
+						{Name: "rust"},
+					},
+				},
+				{
+					Provides: []libcnb.BuildPlanProvide{
+						{Name: "rustup"},
+					},
+				},
+			},
+		}))
+	})
 }
