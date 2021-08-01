@@ -21,7 +21,7 @@ import (
 
 	"github.com/buildpacks/libcnb"
 	"github.com/paketo-buildpacks/libpak/bard"
-	"github.com/paketo-buildpacks/rustup/rustup"
+	"github.com/paketo-community/rustup/rustup"
 )
 
 func main() {

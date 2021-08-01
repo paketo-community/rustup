@@ -35,6 +35,24 @@ id = "io.paketo.stacks.tiny"
 [[stacks]]
 id = "*"
 
+[[metadata.configurations]]
+name        = "BP_RUSTUP_VERSION"
+description = "the rustup version"
+default     = "1"
+build       = true
+
+[[metadata.configurations]]
+name        = "BP_RUSTUP_LIBC"
+description = "libc implementation: gnu or musl"
+default     = "gnu"
+build       = true
+
+[[metadata.configurations]]
+name        = "BP_RUSTUP_INIT_ARGS"
+description = "additional flags to pass rustup-init"
+default     = "'-q -y --no-modify-path --default-toolchain=stable --profile=minimal'"
+build       = true
+
 [[metadata.dependencies]]
 id      = "rustup-gnu"
 name    = "Rustup (GNU libc)"
@@ -55,8 +73,8 @@ stacks  = [ "io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*" ]
 id      = "rustup-musl"
 name    = "Rustup (musl libc)"
 version = "1.24.3"
-uri     = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init"
-sha256  = "3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"
+uri     = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-musl/rustup-init"
+sha256  = "bdf022eb7cba403d0285bb62cbc47211f610caec24589a72af70e1e900663be9"
 stacks  = [ "io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*" ]
 
   [[metadata.dependencies.licenses]]

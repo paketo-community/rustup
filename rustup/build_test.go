@@ -23,7 +23,7 @@ import (
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/rustup/rustup"
+	"github.com/paketo-community/rustup/rustup"
 	"github.com/sclevine/spec"
 )
 
@@ -35,37 +35,78 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		ctx   libcnb.BuildContext
 	)
 
-	it.Before(func() {
-		var err error
+	context("default libc", func() {
+		it.Before(func() {
+			var err error
 
-		ctx.Application.Path, err = ioutil.TempDir("", "build")
-		Expect(err).NotTo(HaveOccurred())
+			ctx.Application.Path, err = ioutil.TempDir("", "build")
+			Expect(err).NotTo(HaveOccurred())
 
-		ctx.Plan.Entries = append(ctx.Plan.Entries, libcnb.BuildpackPlanEntry{Name: "rustup"})
-		ctx.Buildpack.Metadata = map[string]interface{}{
-			"dependencies": []map[string]interface{}{
-				{
-					"id":      "rustup",
-					"version": "1.24.3",
-					"stacks":  []interface{}{"test-stack-id"},
+			ctx.Plan.Entries = append(ctx.Plan.Entries, libcnb.BuildpackPlanEntry{Name: "rustup"})
+			ctx.Buildpack.Metadata = map[string]interface{}{
+				"dependencies": []map[string]interface{}{
+					{
+						"id":      "rustup-",
+						"version": "1.24.3",
+						"stacks":  []interface{}{"test-stack-id"},
+					},
 				},
-			},
-		}
-		ctx.StackID = "test-stack-id"
+			}
+			ctx.StackID = "test-stack-id"
+		})
+
+		it.After(func() {
+			Expect(os.RemoveAll(ctx.Application.Path)).To(Succeed())
+		})
+
+		it("contributes rustup", func() {
+			result, err := build.Build(ctx)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Layers).To(HaveLen(1))
+			Expect(result.Layers[0].Name()).To(Equal("rustup-"))
+
+			Expect(result.BOM.Entries).To(HaveLen(1))
+			Expect(result.BOM.Entries[0].Name).To(Equal("rustup-"))
+		})
 	})
 
-	it.After(func() {
-		Expect(os.RemoveAll(ctx.Application.Path)).To(Succeed())
-	})
+	context("musl libc", func() {
+		it.Before(func() {
+			var err error
 
-	it("contributes rustup", func() {
-		result, err := build.Build(ctx)
-		Expect(err).NotTo(HaveOccurred())
+			ctx.Application.Path, err = ioutil.TempDir("", "build")
+			Expect(err).NotTo(HaveOccurred())
 
-		Expect(result.Layers).To(HaveLen(1))
-		Expect(result.Layers[0].Name()).To(Equal("rustup"))
+			ctx.Plan.Entries = append(ctx.Plan.Entries, libcnb.BuildpackPlanEntry{Name: "rustup"})
+			ctx.Buildpack.Metadata = map[string]interface{}{
+				"dependencies": []map[string]interface{}{
+					{
+						"id":      "rustup-musl",
+						"version": "1.24.3",
+						"stacks":  []interface{}{"test-stack-id"},
+					},
+				},
+			}
+			ctx.StackID = "test-stack-id"
 
-		Expect(result.BOM.Entries).To(HaveLen(1))
-		Expect(result.BOM.Entries[0].Name).To(Equal("rustup"))
+			Expect(os.Setenv("BP_RUSTUP_LIBC", "musl")).To(Succeed())
+		})
+
+		it.After(func() {
+			Expect(os.Unsetenv("BP_RUSTUP_LIBC")).To(Succeed())
+			Expect(os.RemoveAll(ctx.Application.Path)).To(Succeed())
+		})
+
+		it("contributes rustup", func() {
+			result, err := build.Build(ctx)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Layers).To(HaveLen(1))
+			Expect(result.Layers[0].Name()).To(Equal("rustup-musl"))
+
+			Expect(result.BOM.Entries).To(HaveLen(1))
+			Expect(result.BOM.Entries[0].Name).To(Equal("rustup-musl"))
+		})
 	})
 }

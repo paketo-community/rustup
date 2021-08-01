@@ -24,7 +24,7 @@ import (
 )
 
 func TestUnit(t *testing.T) {
-	suite := spec.New("upx", spec.Report(report.Terminal{}))
+	suite := spec.New("Rustup", spec.Report(report.Terminal{}))
 	suite("Build", testBuild)
 	suite("Detect", testDetect)
 	suite("Rustup", testRustup)

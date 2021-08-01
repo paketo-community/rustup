@@ -54,13 +54,15 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		}
 
 		v, _ := cr.Resolve("BP_RUSTUP_VERSION")
+		libc, _ := cr.Resolve("BP_RUSTUP_LIBC")
 
-		rustupDependency, err := dr.Resolve(PlanEntryRustup, v)
+		rustupDependency, err := dr.Resolve(fmt.Sprintf("%s-%s", PlanEntryRustup, libc), v)
 		if err != nil {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to find dependency\n%w", err)
 		}
 
-		rustup, be := NewRustup(rustupDependency, dc)
+		rustup, be := NewRustup(rustupDependency, dc, cr)
+		rustup.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rustup)
 		result.BOM.Entries = append(result.BOM.Entries, be)

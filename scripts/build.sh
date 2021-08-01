@@ -2,11 +2,15 @@
 
 set -euo pipefail
 
-GOOS="linux" go build -ldflags='-s -w' -o bin/main github.com/paketo-buildpacks/rustup/cmd/main
-GOOS="linux" go build -ldflags='-s -w' -o bin/helper github.com/paketo-buildpacks/rustup/cmd/helper
+GOOS="linux" go build -ldflags='-s -w' -o bin/main github.com/paketo-community/rustup/cmd/main
 
-strip bin/helper bin/main
-upx -q -9 bin/helper bin/main
+if [ "${STRIP:-false}" != "false" ]; then
+  strip bin/main
+fi
+
+if [ "${COMPRESS:-none}" != "none" ]; then
+  $COMPRESS bin/main
+fi
 
 ln -fs main bin/build
 ln -fs main bin/detect
