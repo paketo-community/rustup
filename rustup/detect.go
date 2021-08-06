@@ -17,7 +17,11 @@
 package rustup
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/buildpacks/libcnb"
+	"github.com/paketo-buildpacks/libpak"
 )
 
 const (
@@ -29,6 +33,20 @@ type Detect struct {
 }
 
 func (d Detect) Detect(context libcnb.DetectContext) (libcnb.DetectResult, error) {
+	cr, err := libpak.NewConfigurationResolver(context.Buildpack, nil)
+	if err != nil {
+		return libcnb.DetectResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
+	}
+
+	ok, err := d.rustupEnabled(cr)
+	if err != nil {
+		return libcnb.DetectResult{}, err
+	}
+
+	if !ok {
+		return libcnb.DetectResult{Pass: false}, nil
+	}
+
 	return libcnb.DetectResult{
 		Pass: true,
 		Plans: []libcnb.BuildPlan{
@@ -45,4 +63,17 @@ func (d Detect) Detect(context libcnb.DetectContext) (libcnb.DetectResult, error
 			},
 		},
 	}, nil
+}
+
+func (d Detect) rustupEnabled(cr libpak.ConfigurationResolver) (bool, error) {
+	val, _ := cr.Resolve("BP_RUSTUP_ENABLED")
+	enable, err := strconv.ParseBool(val)
+	if err != nil {
+		return false, fmt.Errorf(
+			"invalid value '%s' for key '%s': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]",
+			val,
+			"BP_RUSTUP_ENABLED",
+		)
+	}
+	return enable, nil
 }

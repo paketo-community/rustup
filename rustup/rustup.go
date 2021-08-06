@@ -103,6 +103,7 @@ func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 		}
 
 		layer.BuildEnvironment.Override("RUSTUP_HOME", layer.Path)
+		layer.BuildEnvironment.Override("CARGO_HOME", layer.Path)
 
 		return layer, nil
 	})

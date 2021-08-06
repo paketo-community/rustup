@@ -36,6 +36,12 @@ id = "io.paketo.stacks.tiny"
 id = "*"
 
 [[metadata.configurations]]
+name        = "BP_RUSTUP_ENABLED"
+description = "use rustup to install Rust"
+default     = "true"
+build       = true
+
+[[metadata.configurations]]
 name        = "BP_RUSTUP_VERSION"
 description = "the rustup version"
 default     = "1"

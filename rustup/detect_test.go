@@ -17,6 +17,7 @@
 package rustup_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
@@ -33,7 +34,19 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		detect rustup.Detect
 	)
 
-	it("includes build plan options", func() {
+	it.Before(func() {
+		ctx.Buildpack.Metadata = make(map[string]interface{})
+		ctx.Buildpack.Metadata["configurations"] = []map[string]interface{}{
+			{
+				"name":        "BP_RUSTUP_ENABLED",
+				"description": "use rustup to install Rust",
+				"default":     "true",
+				"build":       true,
+			},
+		}
+	})
+
+	it("includes default build plan options", func() {
 		Expect(detect.Detect(ctx)).To(Equal(libcnb.DetectResult{
 			Pass: true,
 			Plans: []libcnb.BuildPlan{
@@ -50,5 +63,67 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				},
 			},
 		}))
+	})
+
+	context("$BP_RUSTUP_ENABLED is set", func() {
+		context("to false", func() {
+			it.Before(func() {
+				Expect(os.Setenv("BP_RUSTUP_ENABLED", "false")).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Unsetenv("BP_RUSTUP_ENABLED")).To(Succeed())
+			})
+
+			it("disables rustup plans", func() {
+				Expect(detect.Detect(ctx)).To(Equal(libcnb.DetectResult{
+					Pass: false,
+				}))
+			})
+		})
+
+		context("to true", func() {
+			it.Before(func() {
+				Expect(os.Setenv("BP_RUSTUP_ENABLED", "true")).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Unsetenv("BP_RUSTUP_ENABLED")).To(Succeed())
+			})
+
+			it("enables rustup plans", func() {
+				Expect(detect.Detect(ctx)).To(Equal(libcnb.DetectResult{
+					Pass: true,
+					Plans: []libcnb.BuildPlan{
+						{
+							Provides: []libcnb.BuildPlanProvide{
+								{Name: "rustup"},
+								{Name: "rust"},
+							},
+						},
+						{
+							Provides: []libcnb.BuildPlanProvide{
+								{Name: "rustup"},
+							},
+						},
+					},
+				}))
+			})
+		})
+
+		context("to junk", func() {
+			it.Before(func() {
+				Expect(os.Setenv("BP_RUSTUP_ENABLED", "foobar")).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Unsetenv("BP_RUSTUP_ENABLED")).To(Succeed())
+			})
+
+			it("fails", func() {
+				_, err := detect.Detect(ctx)
+				Expect(err).To(MatchError("invalid value 'foobar' for key 'BP_RUSTUP_ENABLED': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]"))
+			})
+		})
 	})
 }
