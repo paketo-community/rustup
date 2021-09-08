@@ -32,7 +32,7 @@ import (
 	"github.com/paketo-buildpacks/libpak/effect/mocks"
 )
 
-func testRustup(t *testing.T, context spec.G, it spec.S) {
+func testRust(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
@@ -49,7 +49,9 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 
 		cargoHome, err = ioutil.TempDir("", "cargoHome")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ioutil.WriteFile(filepath.Join(cargoHome, "env"), nil, 0644)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(cargoHome, "bin"), 0755))
+		// we intentionally do not create a fake rustfmt here so we can test that it's OK if this file does not exist
+		Expect(ioutil.WriteFile(filepath.Join(cargoHome, "bin", "cargo-fmt"), nil, 0644)).To(Succeed())
 
 		Expect(os.Setenv("CARGO_HOME", cargoHome)).To(Succeed())
 
@@ -68,8 +70,7 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 			Expect(ioutil.WriteFile(filepath.Join(layer, "env"), nil, 0644)).To(Succeed())
 		})
 
-		expectedArgs := []string{"-q", "-y", "--no-modify-path", "--default-toolchain=none", "--profile=minimal"}
-		r, _ := rustup.NewRustup("1.2.3", "minimal")
+		r, _ := rustup.NewRust("minimal", "1.2.3")
 		r.Executor = executor
 
 		layer, err := ctx.Layers.Layer("test-layer")
@@ -82,12 +83,14 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 		Expect(layer.LayerTypes.Cache).To(BeTrue())
 		Expect(layer.LayerTypes.Launch).To(BeFalse())
 
-		executor := executor.Calls[0].Arguments[0].(effect.Execution)
-		Expect(executor.Command).To(Equal("rustup-init"))
-		Expect(executor.Args).To(Equal(expectedArgs))
-		Expect(executor.Dir).To(Equal(layer.Path))
+		execCheck := executor.Calls[0].Arguments[0].(effect.Execution)
+		Expect(execCheck.Command).To(Equal("rustup"))
+		Expect(execCheck.Args).To(Equal([]string{"check"}))
 
-		Expect(filepath.Join(cargoHome, "env")).ToNot(BeAnExistingFile())
+		execShow := executor.Calls[1].Arguments[0].(effect.Execution)
+		Expect(execShow.Command).To(Equal("rustup"))
+		Expect(execShow.Args).To(Equal([]string{"-q", "toolchain", "install", "--profile=minimal", "1.2.3"}))
+		Expect(execShow.Dir).To(Equal(layer.Path))
 	})
 
 }

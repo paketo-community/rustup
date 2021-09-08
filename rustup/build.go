@@ -17,7 +17,12 @@
 package rustup
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/paketo-buildpacks/libpak"
@@ -32,10 +37,13 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 	b.Logger.Title(context.Buildpack)
 	result := libcnb.NewBuildResult()
 
-	pr := libpak.PlanEntryResolver{Plan: context.Plan}
+	cr, err := libpak.NewConfigurationResolver(context.Buildpack, nil)
+	if err != nil {
+		return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
+	}
 
-	if _, ok, err := pr.Resolve(PlanEntryRustup); err != nil {
-		return libcnb.BuildResult{}, fmt.Errorf("unable to resolve Rustup plan entry\n%w", err)
+	if ok, err := b.rustupEnabled(cr); err != nil {
+		return libcnb.BuildResult{}, err
 	} else if ok {
 		dc, err := libpak.NewDependencyCache(context)
 		if err != nil {
@@ -48,25 +56,101 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to create dependency resolver\n%w", err)
 		}
 
-		cr, err := libpak.NewConfigurationResolver(context.Buildpack, &b.Logger)
-		if err != nil {
-			return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
-		}
+		// install rustup-init
+		v, _ := cr.Resolve("BP_RUSTUP_INIT_VERSION")
+		libc, _ := cr.Resolve("BP_RUSTUP_INIT_LIBC")
 
-		v, _ := cr.Resolve("BP_RUSTUP_VERSION")
-		libc, _ := cr.Resolve("BP_RUSTUP_LIBC")
-
-		rustupDependency, err := dr.Resolve(fmt.Sprintf("%s-%s", PlanEntryRustup, libc), v)
+		rustupInitDependency, err := dr.Resolve(fmt.Sprintf("rustup-%s", libc), v)
 		if err != nil {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to find dependency\n%w", err)
 		}
 
-		rustup, be := NewRustup(rustupDependency, dc, cr)
+		rustupInit, be := NewRustupInit(rustupInitDependency, dc)
+		rustupInit.Logger = b.Logger
+
+		result.Layers = append(result.Layers, rustupInit)
+		result.BOM.Entries = append(result.BOM.Entries, be)
+
+		// make layer for cargo, which is installed by rust
+		cargo := Cargo{}
+		cargo.Logger = b.Logger
+		result.Layers = append(result.Layers, cargo)
+
+		// install rustup
+		profile, _ := cr.Resolve("BP_RUST_PROFILE")
+		rustup, be := NewRustup(rustupInitDependency.Version, profile)
 		rustup.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rustup)
-		result.BOM.Entries = append(result.BOM.Entries, be)
+		// TODO: add when layer is emitting BOM
+		// result.BOM.Entries = append(result.BOM.Entries, be)
+
+		// install rust
+		rustVersion, _ := cr.Resolve("BP_RUST_TOOLCHAIN")
+		rust, be := NewRust(profile, rustVersion)
+		rust.Logger = b.Logger
+
+		result.Layers = append(result.Layers, rust)
+		// TODO: add when layer is emitting BOM
+		// result.BOM.Entries = append(result.BOM.Entries, be)
 	}
 
 	return result, nil
+}
+
+func (d Build) rustupEnabled(cr libpak.ConfigurationResolver) (bool, error) {
+	val, _ := cr.Resolve("BP_RUSTUP_ENABLED")
+	enable, err := strconv.ParseBool(val)
+	if err != nil {
+		return false, fmt.Errorf(
+			"invalid value '%s' for key '%s': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]",
+			val,
+			"BP_RUSTUP_ENABLED",
+		)
+	}
+	return enable, nil
+}
+
+func AppendToPath(values ...string) error {
+	var path []string
+	if curPath, ok := os.LookupEnv("PATH"); ok {
+		path = append(path, curPath)
+	}
+	path = append(path, values...)
+	return os.Setenv("PATH", strings.Join(path, string(os.PathListSeparator)))
+}
+
+// IndentWriter wraps a writer and indents to a given shiftwidth
+type IndentWriter struct {
+	Shift  []byte
+	Writer io.Writer
+	first  bool
+}
+
+func NewIndentWriter(shiftwidth int, writer io.Writer) *IndentWriter {
+	buf := []byte{}
+	for i := 0; i < shiftwidth; i++ {
+		buf = append(buf, ' ')
+	}
+
+	if writer == nil {
+		writer = io.Discard
+	}
+
+	return &IndentWriter{
+		Shift:  buf,
+		Writer: writer,
+		first:  true,
+	}
+}
+
+func (w *IndentWriter) Write(p []byte) (n int, err error) {
+	a := bytes.SplitAfter(p, []byte("\n"))
+	if w.first {
+		w.first = false
+		a = append([][]byte{{}}, a...)
+	}
+	data := bytes.Join(a, w.Shift)
+	i, err := w.Writer.Write(data)
+	return i - (len(data) - len(p)), err
 }

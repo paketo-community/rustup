@@ -27,6 +27,9 @@ func TestUnit(t *testing.T) {
 	suite := spec.New("Rustup", spec.Report(report.Terminal{}))
 	suite("Build", testBuild)
 	suite("Detect", testDetect)
+	suite("Cargo", testCargo)
+	suite("RustupInit", testRustupInit)
 	suite("Rustup", testRustup)
+	suite("Rust", testRust)
 	suite.Run(t)
 }

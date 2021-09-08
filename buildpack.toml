@@ -36,27 +36,33 @@ id = "io.paketo.stacks.tiny"
 id = "*"
 
 [[metadata.configurations]]
+name = "BP_RUST_TOOLCHAIN"
+description = "the Rust toolchain or version number to install"
+default = "stable"
+build = true
+
+[[metadata.configurations]]
+name = "BP_RUST_PROFILE"
+description = "the Rust profile to install"
+default = "minimal"
+build = true
+
+[[metadata.configurations]]
 name        = "BP_RUSTUP_ENABLED"
 description = "use rustup to install Rust"
 default     = "true"
 build       = true
 
 [[metadata.configurations]]
-name        = "BP_RUSTUP_VERSION"
+name        = "BP_RUSTUP_INIT_VERSION"
 description = "the rustup version"
 default     = "1"
 build       = true
 
 [[metadata.configurations]]
-name        = "BP_RUSTUP_LIBC"
+name        = "BP_RUSTUP_INIT_LIBC"
 description = "libc implementation: gnu or musl"
 default     = "gnu"
-build       = true
-
-[[metadata.configurations]]
-name        = "BP_RUSTUP_INIT_ARGS"
-description = "additional flags to pass rustup-init"
-default     = "'-q -y --no-modify-path --default-toolchain=stable --profile=minimal'"
 build       = true
 
 [[metadata.dependencies]]
