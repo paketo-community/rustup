@@ -61,7 +61,7 @@ jobs:
                 echo "::set-output name=release-notes::${RELEASE_NOTES//$'\n'/%0A}"
               env:
                 DESCRIPTOR: .github/pipeline-descriptor.yml
-                GITHUB_TOKEN: ${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }}
+                GITHUB_TOKEN: ${{ secrets.PAKETO_BOT_GITHUB_TOKEN }}
             - uses: peter-evans/create-pull-request@v3
               with:
                 author: ${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }} <${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }}@users.noreply.github.com>
@@ -81,4 +81,4 @@ jobs:
                 labels: semver:patch, type:task
                 signoff: true
                 title: Bump pipeline from ${{ steps.pipeline.outputs.old-version }} to ${{ steps.pipeline.outputs.new-version }}
-                token: ${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }}
+                token: ${{ secrets.PAKETO_BOT_GITHUB_TOKEN }}
