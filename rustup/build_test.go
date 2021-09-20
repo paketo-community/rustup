@@ -17,14 +17,12 @@
 package rustup_test
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
-	"github.com/paketo-buildpacks/libpak/effect"
 	"github.com/paketo-community/rustup/rustup"
 	"github.com/sclevine/spec"
 )
@@ -36,59 +34,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		build rustup.Build
 		ctx   libcnb.BuildContext
 	)
-
-	context("writer indents", func() {
-		it("indents by 2", func() {
-			buf := bytes.Buffer{}
-			writer := rustup.NewIndentWriter(2, &buf)
-
-			_, err := writer.Write([]byte("hello\nworld!"))
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(buf.String()).To(Equal("  hello\n  world!"))
-		})
-
-		it("indents by 2", func() {
-			buf := bytes.Buffer{}
-			writer := rustup.NewIndentWriter(2, &buf)
-
-			_, err := writer.Write([]byte(`foo
-bar
-baz
-should
-be
-indented`))
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(buf.String()).To(Equal(`  foo
-  bar
-  baz
-  should
-  be
-  indented`))
-		})
-
-		it("indents by 2", func() {
-			buf := bytes.Buffer{}
-			writer := rustup.NewIndentWriter(2, &buf)
-
-			err := effect.NewExecutor().Execute(effect.Execution{
-				Command: "echo",
-				Args:    []string{"-n", "a\nb\n\nc\n   d"},
-				Stdout:  writer,
-				Stderr:  writer,
-			})
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(buf.String()).To(Equal("  a\r\n  b\r\n  \r\n  c\r\n     d"))
-		})
-
-		it("nil writer", func() {
-			writer := rustup.NewIndentWriter(2, nil)
-			_, err := writer.Write([]byte("hello\nworld!"))
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
 
 	context("default libc", func() {
 		it.Before(func() {

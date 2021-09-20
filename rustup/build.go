@@ -17,9 +17,7 @@
 package rustup
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -118,39 +116,4 @@ func AppendToPath(values ...string) error {
 	}
 	path = append(path, values...)
 	return os.Setenv("PATH", strings.Join(path, string(os.PathListSeparator)))
-}
-
-// IndentWriter wraps a writer and indents to a given shiftwidth
-type IndentWriter struct {
-	Shift  []byte
-	Writer io.Writer
-	first  bool
-}
-
-func NewIndentWriter(shiftwidth int, writer io.Writer) *IndentWriter {
-	buf := []byte{}
-	for i := 0; i < shiftwidth; i++ {
-		buf = append(buf, ' ')
-	}
-
-	if writer == nil {
-		writer = io.Discard
-	}
-
-	return &IndentWriter{
-		Shift:  buf,
-		Writer: writer,
-		first:  true,
-	}
-}
-
-func (w *IndentWriter) Write(p []byte) (n int, err error) {
-	a := bytes.SplitAfter(p, []byte("\n"))
-	if w.first {
-		w.first = false
-		a = append([][]byte{{}}, a...)
-	}
-	data := bytes.Join(a, w.Shift)
-	i, err := w.Writer.Write(data)
-	return i - (len(data) - len(p)), err
 }
