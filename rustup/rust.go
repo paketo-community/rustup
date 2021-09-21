@@ -95,8 +95,8 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 				r.Toolchain,
 			},
 			Dir:    layer.Path,
-			Stdout: NewIndentWriter(6, r.Logger.InfoWriter()),
-			Stderr: NewIndentWriter(6, r.Logger.InfoWriter()),
+			Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+			Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
 		}); err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to run `rustup`\n%w", err)
 		}
