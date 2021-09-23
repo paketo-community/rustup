@@ -69,7 +69,7 @@ build       = true
 id      = "rustup-gnu"
 name    = "Rustup (GNU libc)"
 version = "1.24.3"
-uri     = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init"
+uri     = "https://static.rust-lang.org/rustup/archive/1.24.3/x86_64-unknown-linux-gnu/rustup-init"
 sha256  = "3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"
 stacks  = [ "io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*" ]
 
