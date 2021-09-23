@@ -85,7 +85,7 @@ stacks  = [ "io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*" ]
 id      = "rustup-musl"
 name    = "Rustup (musl libc)"
 version = "1.24.3"
-uri     = "https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-musl/rustup-init"
+uri     = "https://static.rust-lang.org/rustup/archive/1.24.3/x86_64-unknown-linux-musl/rustup-init"
 sha256  = "bdf022eb7cba403d0285bb62cbc47211f610caec24589a72af70e1e900663be9"
 stacks  = [ "io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*" ]
 
