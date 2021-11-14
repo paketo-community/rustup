@@ -24,6 +24,7 @@ import (
 	"github.com/buildpacks/libcnb"
 	"github.com/heroku/color"
 	"github.com/paketo-buildpacks/libpak/bard"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
 type Cargo struct {
@@ -33,7 +34,9 @@ type Cargo struct {
 func (c Cargo) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	c.Logger.Headerf("%s: %s to layer", color.BlueString(c.Name()), color.YellowString("Contributing"))
 
-	AppendToPath(filepath.Join(layer.Path, "bin"))
+	if err := os.Setenv("PATH", sherpa.AppendToEnvVar("PATH", ":", filepath.Join(layer.Path, "bin"))); err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to set $PATH\n%w", err)
+	}
 
 	if err := os.Setenv("CARGO_HOME", layer.Path); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to set $CARGO_HOME\n%w", err)

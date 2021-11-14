@@ -45,7 +45,9 @@ func NewRustupInit(dependency libpak.BuildpackDependency, cache libpak.Dependenc
 func (r RustupInit) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	r.LayerContributor.Logger = r.Logger
 
-	AppendToPath(filepath.Join(layer.Path, "bin"))
+	if err := os.Setenv("PATH", sherpa.AppendToEnvVar("PATH", ":", filepath.Join(layer.Path, "bin"))); err != nil {
+		return libcnb.Layer{}, fmt.Errorf("unable to set $PATH\n%w", err)
+	}
 
 	return r.LayerContributor.Contribute(layer, func(artifact *os.File) (libcnb.Layer, error) {
 		file := filepath.Join(layer.Path, "bin", filepath.Base(artifact.Name()))
