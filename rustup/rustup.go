@@ -18,6 +18,7 @@ package rustup
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
+	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
 // Rustup will run `rustup-init` from the PATH and install `rustup`
@@ -56,8 +58,7 @@ func NewRustup(rustupInitVersion string, profile string) (Rustup, libcnb.BOMEntr
 func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	r.LayerContributor.Logger = r.Logger
 
-	// configure env for the current buildpack
-	if err := AppendToPath(filepath.Join(layer.Path, "bin")); err != nil {
+	if err := os.Setenv("PATH", sherpa.AppendToEnvVar("PATH", ":", filepath.Join(layer.Path, "bin"))); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to set $PATH\n%w", err)
 	}
 
@@ -67,6 +68,11 @@ func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 
 	layer, err := r.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		r.Logger.Body("Installing Rustup")
+
+		writer := io.Discard
+		if r.Logger.IsDebugEnabled() {
+			writer = r.Logger.DebugWriter()
+		}
 
 		if err := r.Executor.Execute(effect.Execution{
 			Command: "rustup-init",
@@ -78,7 +84,7 @@ func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 				fmt.Sprintf("--profile=%s", r.Profile),
 			},
 			Dir:    layer.Path,
-			Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+			Stdout: bard.NewWriter(writer, bard.WithIndent(3)),
 			Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
 		}); err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to run rustup-init\n%w", err)

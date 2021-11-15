@@ -18,9 +18,7 @@ package rustup
 
 import (
 	"fmt"
-	"os"
 	"strconv"
-	"strings"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/paketo-buildpacks/libpak"
@@ -107,13 +105,4 @@ func (d Build) rustupEnabled(cr libpak.ConfigurationResolver) (bool, error) {
 		)
 	}
 	return enable, nil
-}
-
-func AppendToPath(values ...string) error {
-	var path []string
-	if curPath, ok := os.LookupEnv("PATH"); ok {
-		path = append(path, curPath)
-	}
-	path = append(path, values...)
-	return os.Setenv("PATH", strings.Join(path, string(os.PathListSeparator)))
 }
