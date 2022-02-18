@@ -38,7 +38,18 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
 	}
 
-	if ok := cr.ResolveBool("BP_RUSTUP_ENABLED"); ok {
+	if ok := cr.ResolveBool("BP_RUSTUP_ENABLED"); !ok {
+		for _, entry := range context.Plan.Entries {
+			result.Unmet = append(result.Unmet, libcnb.UnmetPlanEntry{Name: entry.Name})
+		}
+		return result, nil
+	} else {
+		// create a second time so the configuration is only printed after we know the buildpack should run
+		cr, err = libpak.NewConfigurationResolver(context.Buildpack, &b.Logger)
+		if err != nil {
+			return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
+		}
+
 		dc, err := libpak.NewDependencyCache(context)
 		if err != nil {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to create dependency cache\n%w", err)
