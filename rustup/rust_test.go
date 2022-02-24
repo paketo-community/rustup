@@ -64,17 +64,16 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("contributes rust", func() {
-		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-			exec := args.Get(0).(effect.Execution)
-			layer := filepath.Dir(filepath.Dir(exec.Command))
-			Expect(ioutil.WriteFile(filepath.Join(layer, "env"), nil, 0644)).To(Succeed())
-		})
-
-		r, _ := rustup.NewRust("minimal", "1.2.3")
-		r.Executor = executor
-
 		layer, err := ctx.Layers.Layer("test-layer")
 		Expect(err).NotTo(HaveOccurred())
+
+		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+		})
+
+		r, _ := rustup.NewRust("minimal", "1.2.3", "")
+		r.Executor = executor
 
 		layer, err = r.Contribute(layer)
 		Expect(err).NotTo(HaveOccurred())
@@ -91,6 +90,40 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 		Expect(execShow.Command).To(Equal("rustup"))
 		Expect(execShow.Args).To(Equal([]string{"-q", "toolchain", "install", "--profile=minimal", "1.2.3"}))
 		Expect(execShow.Dir).To(Equal(layer.Path))
+	})
+
+	it("contributes rust and a target", func() {
+		layer, err := ctx.Layers.Layer("test-layer")
+		Expect(err).NotTo(HaveOccurred())
+
+		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+		})
+
+		r, _ := rustup.NewRust("minimal", "1.2.3", "foo")
+		r.Executor = executor
+
+		layer, err = r.Contribute(layer)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(layer.LayerTypes.Build).To(BeTrue())
+		Expect(layer.LayerTypes.Cache).To(BeTrue())
+		Expect(layer.LayerTypes.Launch).To(BeFalse())
+
+		execCheck := executor.Calls[0].Arguments[0].(effect.Execution)
+		Expect(execCheck.Command).To(Equal("rustup"))
+		Expect(execCheck.Args).To(Equal([]string{"check"}))
+
+		execToolchain := executor.Calls[1].Arguments[0].(effect.Execution)
+		Expect(execToolchain.Command).To(Equal("rustup"))
+		Expect(execToolchain.Args).To(Equal([]string{"-q", "toolchain", "install", "--profile=minimal", "1.2.3"}))
+		Expect(execToolchain.Dir).To(Equal(layer.Path))
+
+		execTarget := executor.Calls[2].Arguments[0].(effect.Execution)
+		Expect(execTarget.Command).To(Equal("rustup"))
+		Expect(execTarget.Args).To(Equal([]string{"-q", "target", "add", "--toolchain=1.2.3", "foo"}))
+		Expect(execTarget.Dir).To(Equal(layer.Path))
 	})
 
 }

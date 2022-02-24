@@ -36,24 +36,27 @@ type Rust struct {
 	Arguments        []string
 	Executor         effect.Executor
 	Toolchain        string
+	Target           string
 	Profile          string
 }
 
-func NewRust(profile string, toolchain string) (Rust, libcnb.BOMEntry) {
+func NewRust(profile, toolchain, target string) (Rust, libcnb.BOMEntry) {
 	return Rust{
 		LayerContributor: libpak.NewLayerContributor(
 			"Rust",
 			map[string]interface{}{
 				"toolchain": toolchain,
 				"profile":   profile,
+				"target":    target,
 			},
 			libcnb.LayerTypes{
 				Build: true,
 				Cache: true,
 			}),
 		Executor:  effect.NewExecutor(),
-		Toolchain: toolchain,
 		Profile:   profile,
+		Toolchain: toolchain,
+		Target:    target,
 	}, libcnb.BOMEntry{}
 }
 
@@ -99,6 +102,24 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 			Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
 		}); err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to run `rustup`\n%w", err)
+		}
+
+		if r.Target != "" {
+			if err := r.Executor.Execute(effect.Execution{
+				Command: "rustup",
+				Args: []string{
+					"-q",
+					"target",
+					"add",
+					fmt.Sprintf("--toolchain=%s", r.Toolchain),
+					r.Target,
+				},
+				Dir:    layer.Path,
+				Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+				Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+			}); err != nil {
+				return libcnb.Layer{}, fmt.Errorf("unable to run `rustup`\n%w", err)
+			}
 		}
 
 		return layer, nil
