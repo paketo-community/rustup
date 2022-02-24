@@ -44,6 +44,12 @@ api = "0.6"
 
   [[metadata.configurations]]
     build = true
+    default = ""
+    description = "an additional Rust target to install"
+    name = "BP_RUST_TARGET"
+
+  [[metadata.configurations]]
+    build = true
     default = "true"
     description = "use rustup to install Rust"
     name = "BP_RUSTUP_ENABLED"

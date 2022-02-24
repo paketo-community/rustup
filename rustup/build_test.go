@@ -23,6 +23,7 @@ import (
 
 	"github.com/buildpacks/libcnb"
 	. "github.com/onsi/gomega"
+	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-community/rustup/rustup"
 	"github.com/sclevine/spec"
 )
@@ -97,6 +98,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 					Expect(result.Layers).To(HaveLen(0))
 					Expect(result.BOM.Entries).To(HaveLen(0))
+					Expect(result.Unmet).To(HaveLen(1))
+					Expect(result.Unmet[0].Name).To(Equal("rust"))
 				})
 			})
 
@@ -130,9 +133,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Expect(os.Unsetenv("BP_RUSTUP_ENABLED")).To(Succeed())
 				})
 
-				it("fails", func() {
-					_, err := build.Build(ctx)
-					Expect(err).To(MatchError("invalid value 'foobar' for key 'BP_RUSTUP_ENABLED': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]"))
+				it("does not contribute", func() {
+					result, err := build.Build(ctx)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(result.Layers).To(HaveLen(0))
+					Expect(result.BOM.Entries).To(HaveLen(0))
 				})
 			})
 		})
@@ -182,6 +188,56 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(result.BOM.Entries).To(HaveLen(1))
 			Expect(result.BOM.Entries[0].Name).To(Equal("rustup-musl"))
+		})
+	})
+
+	context("pick additional target by stack", func() {
+		it("picks gnu libc by default", func() {
+			ctx.Buildpack.Metadata = map[string]interface{}{
+				"configurations": []map[string]interface{}{},
+			}
+			ctx.StackID = "test-stack-id"
+
+			cr, err := libpak.NewConfigurationResolver(ctx.Buildpack, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			target := rustup.AdditionalTarget(cr, libpak.BionicStackID)
+			Expect(target).To(HaveSuffix("-unknown-linux-gnu"))
+		})
+
+		context("user value is set", func() {
+			it("picks the user set value", func() {
+				ctx.Buildpack.Metadata = map[string]interface{}{
+					"configurations": []map[string]interface{}{
+						{
+							"name":        "BP_RUST_TARGET",
+							"description": "additional rust target",
+							"default":     "foo",
+							"build":       true,
+						},
+					},
+				}
+				ctx.StackID = "test-stack-id"
+
+				cr, err := libpak.NewConfigurationResolver(ctx.Buildpack, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				target := rustup.AdditionalTarget(cr, libpak.BionicStackID)
+				Expect(target).To(Equal("foo"))
+			})
+		})
+
+		it("picks musl for tiny stack", func() {
+			ctx.Buildpack.Metadata = map[string]interface{}{
+				"configurations": []map[string]interface{}{},
+			}
+			ctx.StackID = libpak.TinyStackID
+
+			cr, err := libpak.NewConfigurationResolver(ctx.Buildpack, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			target := rustup.AdditionalTarget(cr, libpak.TinyStackID)
+			Expect(target).To(HaveSuffix("-unknown-linux-musl"))
 		})
 	})
 }

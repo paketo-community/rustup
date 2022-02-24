@@ -18,7 +18,7 @@ package rustup
 
 import (
 	"fmt"
-	"strconv"
+	"runtime"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/paketo-buildpacks/libpak"
@@ -38,9 +38,18 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
 	}
 
-	if ok, err := b.rustupEnabled(cr); err != nil {
-		return libcnb.BuildResult{}, err
-	} else if ok {
+	if ok := cr.ResolveBool("BP_RUSTUP_ENABLED"); !ok {
+		for _, entry := range context.Plan.Entries {
+			result.Unmet = append(result.Unmet, libcnb.UnmetPlanEntry{Name: entry.Name})
+		}
+		return result, nil
+	} else {
+		// create a second time so the configuration is only printed after we know the buildpack should run
+		cr, err = libpak.NewConfigurationResolver(context.Buildpack, &b.Logger)
+		if err != nil {
+			return libcnb.BuildResult{}, fmt.Errorf("unable to create configuration resolver\n%w", err)
+		}
+
 		dc, err := libpak.NewDependencyCache(context)
 		if err != nil {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to create dependency cache\n%w", err)
@@ -83,7 +92,8 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 
 		// install rust
 		rustVersion, _ := cr.Resolve("BP_RUST_TOOLCHAIN")
-		rust, be := NewRust(profile, rustVersion)
+		additionalTarget := AdditionalTarget(cr, context.StackID)
+		rust, be := NewRust(profile, rustVersion, additionalTarget)
 		rust.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rust)
@@ -94,15 +104,21 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 	return result, nil
 }
 
-func (d Build) rustupEnabled(cr libpak.ConfigurationResolver) (bool, error) {
-	val, _ := cr.Resolve("BP_RUSTUP_ENABLED")
-	enable, err := strconv.ParseBool(val)
-	if err != nil {
-		return false, fmt.Errorf(
-			"invalid value '%s' for key '%s': expected one of [1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False]",
-			val,
-			"BP_RUSTUP_ENABLED",
-		)
+func AdditionalTarget(cr libpak.ConfigurationResolver, stack string) string {
+	val, _ := cr.Resolve(("BP_RUST_TARGET"))
+	if val != "" {
+		return val
 	}
-	return enable, nil
+
+	arch := "x86_64"
+	if runtime.GOARCH == "arm64" {
+		arch = "aarch64"
+	}
+
+	libc := "gnu"
+	if stack == libpak.TinyStackID {
+		libc = "musl"
+	}
+
+	return fmt.Sprintf("%s-unknown-linux-%s", arch, libc)
 }

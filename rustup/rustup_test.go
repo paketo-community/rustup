@@ -62,18 +62,16 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	it("contributes rust", func() {
+		layer, err := ctx.Layers.Layer("test-layer")
+		Expect(err).NotTo(HaveOccurred())
+
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-			exec := args.Get(0).(effect.Execution)
-			layer := filepath.Dir(filepath.Dir(exec.Command))
-			Expect(ioutil.WriteFile(filepath.Join(layer, "env"), nil, 0644)).To(Succeed())
+			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		expectedArgs := []string{"-q", "-y", "--no-modify-path", "--default-toolchain=none", "--profile=minimal"}
 		r, _ := rustup.NewRustup("1.2.3", "minimal")
 		r.Executor = executor
-
-		layer, err := ctx.Layers.Layer("test-layer")
-		Expect(err).NotTo(HaveOccurred())
 
 		layer, err = r.Contribute(layer)
 		Expect(err).NotTo(HaveOccurred())
