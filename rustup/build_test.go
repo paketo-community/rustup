@@ -98,6 +98,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 					Expect(result.Layers).To(HaveLen(0))
 					Expect(result.BOM.Entries).To(HaveLen(0))
+					Expect(result.Unmet).To(HaveLen(1))
+					Expect(result.Unmet[0].Name).To(Equal("rust"))
 				})
 			})
 
