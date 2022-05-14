@@ -65,16 +65,15 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		v, _ := cr.Resolve("BP_RUSTUP_INIT_VERSION")
 		libc, _ := cr.Resolve("BP_RUSTUP_INIT_LIBC")
 
-		rustupInitDependency, err := dr.Resolve(fmt.Sprintf("rustup-%s", libc), v)
+		rustupInitDependency, err := dr.Resolve(fmt.Sprintf("rustup-init-%s", libc), v)
 		if err != nil {
 			return libcnb.BuildResult{}, fmt.Errorf("unable to find dependency\n%w", err)
 		}
 
-		rustupInit, be := NewRustupInit(rustupInitDependency, dc)
+		rustupInit := NewRustupInit(rustupInitDependency, dc)
 		rustupInit.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rustupInit)
-		result.BOM.Entries = append(result.BOM.Entries, be)
 
 		// make layer for cargo, which is installed by rust
 		cargo := Cargo{}
@@ -83,22 +82,18 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 
 		// install rustup
 		profile, _ := cr.Resolve("BP_RUST_PROFILE")
-		rustup, be := NewRustup(rustupInitDependency.Version, profile)
+		rustup := NewRustup(rustupInitDependency.Version, profile)
 		rustup.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rustup)
-		// TODO: add when layer is emitting BOM
-		// result.BOM.Entries = append(result.BOM.Entries, be)
 
 		// install rust
 		rustVersion, _ := cr.Resolve("BP_RUST_TOOLCHAIN")
 		additionalTarget := AdditionalTarget(cr, context.StackID)
-		rust, be := NewRust(profile, rustVersion, additionalTarget)
+		rust := NewRust(profile, rustVersion, additionalTarget)
 		rust.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rust)
-		// TODO: add when layer is emitting BOM
-		// result.BOM.Entries = append(result.BOM.Entries, be)
 	}
 
 	return result, nil

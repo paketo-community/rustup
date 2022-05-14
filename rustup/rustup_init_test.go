@@ -55,7 +55,7 @@ func testRustupInit(t *testing.T, context spec.G, it spec.S) {
 		}
 		dc := libpak.DependencyCache{CachePath: "testdata"}
 
-		r, _ := rustup.NewRustupInit(dep, dc)
+		r := rustup.NewRustupInit(dep, dc)
 
 		layer, err := ctx.Layers.Layer("test-layer")
 		Expect(err).NotTo(HaveOccurred())

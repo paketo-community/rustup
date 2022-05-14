@@ -67,12 +67,20 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 		layer, err := ctx.Layers.Layer("test-layer")
 		Expect(err).NotTo(HaveOccurred())
 
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Args[0] == "--version" && ex.Command == "rustc"
+		})).Return(func(ex effect.Execution) error {
+			_, err := ex.Stdout.Write([]byte("rustc 1.2.3 (53cb7b09b 2021-06-17)\n"))
+			Expect(err).ToNot(HaveOccurred())
+			return nil
+		})
+
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
-		r, _ := rustup.NewRust("minimal", "1.2.3", "")
+		r := rustup.NewRust("minimal", "1.2.3", "")
 		r.Executor = executor
 
 		layer, err = r.Contribute(layer)
@@ -90,18 +98,32 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 		Expect(execShow.Command).To(Equal("rustup"))
 		Expect(execShow.Args).To(Equal([]string{"-q", "toolchain", "install", "--profile=minimal", "1.2.3"}))
 		Expect(execShow.Dir).To(Equal(layer.Path))
+
+		execVer := executor.Calls[2].Arguments[0].(effect.Execution)
+		Expect(execVer.Command).To(Equal("rustc"))
+		Expect(execVer.Args).To(Equal([]string{"--version"}))
+
+		Expect(layer.SBOMPath(libcnb.SyftJSON)).To(BeARegularFile())
 	})
 
 	it("contributes rust and a target", func() {
 		layer, err := ctx.Layers.Layer("test-layer")
 		Expect(err).NotTo(HaveOccurred())
 
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Args[0] == "--version" && ex.Command == "rustc"
+		})).Return(func(ex effect.Execution) error {
+			_, err := ex.Stdout.Write([]byte("rustc 1.2.3 (53cb7b09b 2021-06-17)\n"))
+			Expect(err).ToNot(HaveOccurred())
+			return nil
+		})
+
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
 			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
-		r, _ := rustup.NewRust("minimal", "1.2.3", "foo")
+		r := rustup.NewRust("minimal", "1.2.3", "foo")
 		r.Executor = executor
 
 		layer, err = r.Contribute(layer)
@@ -124,6 +146,12 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 		Expect(execTarget.Command).To(Equal("rustup"))
 		Expect(execTarget.Args).To(Equal([]string{"-q", "target", "add", "--toolchain=1.2.3", "foo"}))
 		Expect(execTarget.Dir).To(Equal(layer.Path))
+
+		execVer := executor.Calls[3].Arguments[0].(effect.Execution)
+		Expect(execVer.Command).To(Equal("rustc"))
+		Expect(execVer.Args).To(Equal([]string{"--version"}))
+
+		Expect(layer.SBOMPath(libcnb.SyftJSON)).To(BeARegularFile())
 	})
 
 }

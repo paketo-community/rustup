@@ -65,12 +65,20 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 		layer, err := ctx.Layers.Layer("test-layer")
 		Expect(err).NotTo(HaveOccurred())
 
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Args[0] == "--version" && ex.Command == "rustup"
+		})).Return(func(ex effect.Execution) error {
+			_, err := ex.Stdout.Write([]byte("rustup 1.24.3 (2021-05-31)\ninfo: This is the version for the rustup toolchain manager, not the rustc compiler.\ninfo: The currently active `rustc` version is `rustc 1.60.0 (7737e0b5c 2022-04-04)`"))
+			Expect(err).ToNot(HaveOccurred())
+			return nil
+		})
+
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		expectedArgs := []string{"-q", "-y", "--no-modify-path", "--default-toolchain=none", "--profile=minimal"}
-		r, _ := rustup.NewRustup("1.2.3", "minimal")
+		r := rustup.NewRustup("1.2.3", "minimal")
 		r.Executor = executor
 
 		layer, err = r.Contribute(layer)
@@ -80,12 +88,17 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 		Expect(layer.LayerTypes.Cache).To(BeTrue())
 		Expect(layer.LayerTypes.Launch).To(BeFalse())
 
-		executor := executor.Calls[0].Arguments[0].(effect.Execution)
-		Expect(executor.Command).To(Equal("rustup-init"))
-		Expect(executor.Args).To(Equal(expectedArgs))
-		Expect(executor.Dir).To(Equal(layer.Path))
+		execInit := executor.Calls[0].Arguments[0].(effect.Execution)
+		Expect(execInit.Command).To(Equal("rustup-init"))
+		Expect(execInit.Args).To(Equal(expectedArgs))
+		Expect(execInit.Dir).To(Equal(layer.Path))
+
+		execVer := executor.Calls[1].Arguments[0].(effect.Execution)
+		Expect(execVer.Command).To(Equal("rustup"))
+		Expect(execVer.Args).To(Equal([]string{"--version"}))
 
 		Expect(filepath.Join(cargoHome, "env")).ToNot(BeAnExistingFile())
+		Expect(layer.SBOMPath(libcnb.SyftJSON)).To(BeARegularFile())
 	})
 
 }
