@@ -47,7 +47,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			ctx.Buildpack.Metadata = map[string]interface{}{
 				"dependencies": []map[string]interface{}{
 					{
-						"id":      "rustup-",
+						"id":      "rustup-init-",
 						"version": "1.24.3",
 						"stacks":  []interface{}{"test-stack-id"},
 					},
@@ -73,13 +73,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result.Layers).To(HaveLen(4))
-			Expect(result.Layers[0].Name()).To(Equal("rustup-"))
+			Expect(result.Layers[0].Name()).To(Equal("rustup-init-"))
 			Expect(result.Layers[1].Name()).To(Equal("Cargo"))
 			Expect(result.Layers[2].Name()).To(Equal("Rustup"))
 			Expect(result.Layers[3].Name()).To(Equal("Rust"))
-
-			Expect(result.BOM.Entries).To(HaveLen(1))
-			Expect(result.BOM.Entries[0].Name).To(Equal("rustup-"))
 		})
 
 		context("$BP_RUSTUP_ENABLED is set", func() {
@@ -97,7 +94,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(result.Layers).To(HaveLen(0))
-					Expect(result.BOM.Entries).To(HaveLen(0))
 					Expect(result.Unmet).To(HaveLen(1))
 					Expect(result.Unmet[0].Name).To(Equal("rust"))
 				})
@@ -117,10 +113,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(result.Layers).To(HaveLen(4))
-					Expect(result.Layers[0].Name()).To(Equal("rustup-"))
-
-					Expect(result.BOM.Entries).To(HaveLen(1))
-					Expect(result.BOM.Entries[0].Name).To(Equal("rustup-"))
+					Expect(result.Layers[0].Name()).To(Equal("rustup-init-"))
 				})
 			})
 
@@ -138,7 +131,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(result.Layers).To(HaveLen(0))
-					Expect(result.BOM.Entries).To(HaveLen(0))
 				})
 			})
 		})
@@ -155,7 +147,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			ctx.Buildpack.Metadata = map[string]interface{}{
 				"dependencies": []map[string]interface{}{
 					{
-						"id":      "rustup-musl",
+						"id":      "rustup-init-musl",
 						"version": "1.24.3",
 						"stacks":  []interface{}{"test-stack-id"},
 					},
@@ -184,10 +176,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result.Layers).To(HaveLen(4))
-			Expect(result.Layers[0].Name()).To(Equal("rustup-musl"))
-
-			Expect(result.BOM.Entries).To(HaveLen(1))
-			Expect(result.BOM.Entries[0].Name).To(Equal("rustup-musl"))
+			Expect(result.Layers[0].Name()).To(Equal("rustup-init-musl"))
 		})
 	})
 

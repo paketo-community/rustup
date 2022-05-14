@@ -17,15 +17,18 @@
 package rustup
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/buildpacks/libcnb"
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
+	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/paketo-buildpacks/libpak/sherpa"
 )
 
@@ -38,7 +41,7 @@ type Rustup struct {
 	Profile          string
 }
 
-func NewRustup(rustupInitVersion string, profile string) (Rustup, libcnb.BOMEntry) {
+func NewRustup(rustupInitVersion string, profile string) Rustup {
 	return Rustup{
 		LayerContributor: libpak.NewLayerContributor(
 			"Rustup",
@@ -52,7 +55,7 @@ func NewRustup(rustupInitVersion string, profile string) (Rustup, libcnb.BOMEntr
 			}),
 		Executor: effect.NewExecutor(),
 		Profile:  profile,
-	}, libcnb.BOMEntry{}
+	}
 }
 
 func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
@@ -99,13 +102,44 @@ func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 
 		layer.BuildEnvironment.Override("RUSTUP_HOME", layer.Path)
 
+		buf := &bytes.Buffer{}
+		if err := r.Executor.Execute(effect.Execution{
+			Command: "rustup",
+			Args:    []string{"--version"},
+			Stdout:  buf,
+			Stderr:  buf,
+		}); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("error executing 'rustup --version':\n Combined Output: %s: \n%w", buf.String(), err)
+		}
+		ver := strings.Split(strings.TrimSpace(buf.String()), " ")
+
+		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
+		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{
+			{
+				ID:      "rustup",
+				Name:    "Rustup",
+				Version: ver[1],
+				Type:    "UnknownPackage",
+				FoundBy: "paketo-community/rustup",
+				Locations: []sbom.SyftLocation{
+					{Path: "paketo-community/rustup/rustup/rustup.go"},
+				},
+				Licenses: []string{"Apache-2.0", "MIT"},
+				CPEs:     []string{fmt.Sprintf("cpe:2.3:a:rustup:rustup:%s:*:*:*:*:*:*:*", ver[1])},
+				PURL:     fmt.Sprintf("pkg:generic/rustup@%s", ver[1]),
+			},
+		})
+		r.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
+		if err := dep.WriteTo(sbomPath); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+		}
+
 		return layer, nil
 	})
 	if err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to contribute Rust layer\n%w", err)
 	}
 
-	// TODO: populate & return BOM
 	return layer, nil
 }
 

@@ -33,13 +33,13 @@ type RustupInit struct {
 	Logger           bard.Logger
 }
 
-func NewRustupInit(dependency libpak.BuildpackDependency, cache libpak.DependencyCache) (RustupInit, libcnb.BOMEntry) {
-	contributor, entry := libpak.NewDependencyLayer(dependency, cache, libcnb.LayerTypes{
+func NewRustupInit(dependency libpak.BuildpackDependency, cache libpak.DependencyCache) RustupInit {
+	contributor := libpak.NewDependencyLayerContributor(dependency, cache, libcnb.LayerTypes{
 		Cache: true,
 	})
 	return RustupInit{
 		LayerContributor: contributor,
-	}, entry
+	}
 }
 
 func (r RustupInit) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {

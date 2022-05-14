@@ -27,6 +27,7 @@ import (
 	"github.com/paketo-buildpacks/libpak"
 	"github.com/paketo-buildpacks/libpak/bard"
 	"github.com/paketo-buildpacks/libpak/effect"
+	"github.com/paketo-buildpacks/libpak/sbom"
 )
 
 // Rust will run `rustup` from the PATH to install a given toolchain
@@ -40,7 +41,7 @@ type Rust struct {
 	Profile          string
 }
 
-func NewRust(profile, toolchain, target string) (Rust, libcnb.BOMEntry) {
+func NewRust(profile, toolchain, target string) Rust {
 	return Rust{
 		LayerContributor: libpak.NewLayerContributor(
 			"Rust",
@@ -57,7 +58,7 @@ func NewRust(profile, toolchain, target string) (Rust, libcnb.BOMEntry) {
 		Profile:   profile,
 		Toolchain: toolchain,
 		Target:    target,
-	}, libcnb.BOMEntry{}
+	}
 }
 
 func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
@@ -122,6 +123,38 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 			}
 		}
 
+		buf := &bytes.Buffer{}
+		if err := r.Executor.Execute(effect.Execution{
+			Command: "rustc",
+			Args:    []string{"--version"},
+			Stdout:  buf,
+			Stderr:  buf,
+		}); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("error executing 'rustc --version':\n Combined Output: %s: \n%w", buf.String(), err)
+		}
+		ver := strings.Split(strings.TrimSpace(buf.String()), " ")
+
+		sbomPath := layer.SBOMPath(libcnb.SyftJSON)
+		dep := sbom.NewSyftDependency(layer.Path, []sbom.SyftArtifact{
+			{
+				ID:      "rust",
+				Name:    "Rust",
+				Version: ver[1],
+				Type:    "UnknownPackage",
+				FoundBy: "paketo-community/rustup",
+				Locations: []sbom.SyftLocation{
+					{Path: "paketo-community/rustup/rustup/rust.go"},
+				},
+				Licenses: []string{"Apache-2.0", "MIT"},
+				CPEs:     []string{fmt.Sprintf("cpe:2.3:a:rust:rust:%s:*:*:*:*:*:*:*", ver[1])},
+				PURL:     fmt.Sprintf("pkg:generic/rust@%s", ver[1]),
+			},
+		})
+		r.Logger.Debugf("Writing Syft SBOM at %s: %+v", sbomPath, dep)
+		if err := dep.WriteTo(sbomPath); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to write SBOM\n%w", err)
+		}
+
 		return layer, nil
 	})
 	if err != nil {
@@ -140,7 +173,6 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	}
 	layer.Metadata["installed"] = strings.TrimSpace(buf.String())
 
-	// TODO: populate & return BOM
 	return layer, nil
 }
 
