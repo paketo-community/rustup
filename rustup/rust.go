@@ -19,6 +19,7 @@ package rustup
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,6 +79,13 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 
 	layer, err := r.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		r.Logger.Body("Installing Rust")
+
+		// This layer doesn't actually contain files, they write to RUSTUP_HOME, because Rustup is installing them.
+		// Because this layer build + cache and it is empty, libpak & the LayerContributor will think it's a problem and reload it.
+		// To bypass that, we are writing an empty file to the layer to prevent that from happening.
+		if err := ioutil.WriteFile(filepath.Join(layer.Path, "marker"), []byte{}, 0644); err != nil {
+			return libcnb.Layer{}, fmt.Errorf("unable to write marker file\n%w", err)
+		}
 
 		// remove these files because rustup forgets about them and thinks they are installed by someone else
 		if cargoHome, ok := os.LookupEnv("CARGO_HOME"); ok {
