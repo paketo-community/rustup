@@ -83,7 +83,7 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 		// This layer doesn't actually contain files, they write to RUSTUP_HOME, because Rustup is installing them.
 		// Because this layer build + cache and it is empty, libpak & the LayerContributor will think it's a problem and reload it.
 		// To bypass that, we are writing an empty file to the layer to prevent that from happening.
-		if err := ioutil.WriteFile(filepath.Join(layer.Path, "marker"), []byte{}, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(layer.Path, "marker"), []byte{}, 0644); err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to write marker file\n%w", err)
 		}
 
