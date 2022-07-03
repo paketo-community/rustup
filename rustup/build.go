@@ -17,7 +17,11 @@
 package rustup
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/buildpacks/libcnb"
@@ -81,16 +85,21 @@ func (b Build) Build(context libcnb.BuildContext) (libcnb.BuildResult, error) {
 		result.Layers = append(result.Layers, cargo)
 
 		// install rustup
-		profile, _ := cr.Resolve("BP_RUST_PROFILE")
+		profile, profileSet := cr.Resolve("BP_RUST_PROFILE")
 		rustup := NewRustup(rustupInitDependency.Version, profile)
 		rustup.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rustup)
 
 		// install rust
-		rustVersion, _ := cr.Resolve("BP_RUST_TOOLCHAIN")
+		rustToolChainFilePath, err := rustToolChainFilePath(context.Application.Path)
+		if err != nil {
+			return libcnb.BuildResult{}, fmt.Errorf("unable to find dependency\n%w", err)
+		}
+
+		rustVersion, rustVersionSet := cr.Resolve("BP_RUST_TOOLCHAIN")
 		additionalTarget := AdditionalTarget(cr, context.StackID)
-		rust := NewRust(profile, rustVersion, additionalTarget)
+		rust := NewRust(profile, rustVersion, additionalTarget, rustToolChainFilePath, profileSet, rustVersionSet)
 		rust.Logger = b.Logger
 
 		result.Layers = append(result.Layers, rust)
@@ -116,4 +125,22 @@ func AdditionalTarget(cr libpak.ConfigurationResolver, stack string) string {
 	}
 
 	return fmt.Sprintf("%s-unknown-linux-%s", arch, libc)
+}
+
+func rustToolChainFilePath(appPath string) (string, error) {
+	toolchainFilePath := filepath.Join(appPath, "rust-toolchain")
+	if _, err := os.Stat(toolchainFilePath); err == nil {
+		return toolchainFilePath, nil
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+
+	toolchainFilePath = filepath.Join(appPath, "rust-toolchain.toml")
+	if _, err := os.Stat(toolchainFilePath); err == nil {
+		return toolchainFilePath, nil
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+
+	return "", nil
 }

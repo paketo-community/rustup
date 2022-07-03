@@ -14,6 +14,8 @@ The buildpack will do the following:
 * Contributes `rustup-init` to a layer marked `cache` with command on `$PATH`
 * Executes `rustup-init` with the output written to a layer marked `build` and `cache` with installed commands on `$PATH`
 * Executes `rustup` to install a Rust toolchain to a layer marked `build` and `cache` with installed commands on `$PATH`
+  * If `rust-toolchain` or `rust-toolchain.toml` exists, `rustup` will install as configured in the file. If `$BP_RUST_TOOLCHAIN` / `$BP_RUST_PROFILE` are also set to non-default values, they will also be installed.
+  * If `rust-toolchain` or `rust-toolchain.toml` do not exist, `rustup` will install `$BP_RUST_TOOLCHAIN` / `$BP_RUST_PROFILE`.
 * If `$BP_RUST_TARGET` is set, executes `rustup target add` to install an additional Rust target.
 * If `$BP_RUST_TARGET` is not set and the build is running on the Paketo Tiny stack, then the Rust Linux musl target will be automatically added.
 
