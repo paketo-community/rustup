@@ -1,4 +1,4 @@
-name: Update rustup-musl
+name: Update rustup-init-musl
 "on":
     schedule:
         - cron: 0 5 * * 1-5
@@ -88,7 +88,7 @@ jobs:
               env:
                 CPE: ${{ steps.dependency.outputs.cpe }}
                 CPE_PATTERN: ""
-                ID: rustup-musl
+                ID: rustup-init-musl
                 PURL: ${{ steps.dependency.outputs.purl }}
                 PURL_PATTERN: ""
                 SHA256: ${{ steps.dependency.outputs.sha256 }}
@@ -98,14 +98,14 @@ jobs:
             - uses: peter-evans/create-pull-request@v4
               with:
                 author: ${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }} <${{ secrets.PAKETO_BUILDPACKS_DOCKERHUB_USERNAME }}@users.noreply.github.com>
-                body: Bumps `rustup-musl` from `${{ steps.buildpack.outputs.old-version }}` to `${{ steps.buildpack.outputs.new-version }}`.
-                branch: update/buildpack/rustup-musl
+                body: Bumps `rustup-init-musl` from `${{ steps.buildpack.outputs.old-version }}` to `${{ steps.buildpack.outputs.new-version }}`.
+                branch: update/buildpack/rustup-init-musl
                 commit-message: |-
-                    Bump rustup-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}
+                    Bump rustup-init-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}
 
-                    Bumps rustup-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}.
+                    Bumps rustup-init-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}.
                 delete-branch: true
                 labels: ${{ steps.buildpack.outputs.version-label }}, type:dependency-upgrade
                 signoff: true
-                title: Bump rustup-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}
+                title: Bump rustup-init-musl from ${{ steps.buildpack.outputs.old-version }} to ${{ steps.buildpack.outputs.new-version }}
                 token: ${{ secrets.PAKETO_BOT_GITHUB_TOKEN }}
