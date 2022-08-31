@@ -1,6 +1,6 @@
 # `gcr.io/paketo-community/rustup`
 
-The Paketo Rustup Buildpack is a Cloud Native Buildpack that installs and executes `rustup` to install Rust.
+The Paketo Buildpack for Rustup is a Cloud Native Buildpack that installs and executes `rustup` to install Rust.
 
 ## Behavior
 
