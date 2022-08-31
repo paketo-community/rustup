@@ -19,7 +19,7 @@ api = "0.7"
   homepage = "https://github.com/paketo-community/rustup"
   id = "paketo-community/rustup"
   keywords = ["rust", "rustup"]
-  name = "Paketo Rustup Buildpack"
+  name = "Paketo Buildpack for Rustup"
   sbom-formats = ["application/vnd.cyclonedx+json", "application/vnd.syft+json"]
   version = "{{.version}}"
 
