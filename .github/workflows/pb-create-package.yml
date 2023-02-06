@@ -195,7 +195,7 @@ jobs:
                     --format "${FORMAT}"
                 fi
               env:
-                PACKAGES: docker.io/paketobuildpacks/rustup gcr.io/paketo-buildpacks/rustup
+                PACKAGES: docker.io/paketocommunity/rustup gcr.io/paketo-community/rustup
                 PUBLISH: "true"
                 VERSION: ${{ steps.version.outputs.version }}
                 VERSION_MAJOR: ${{ steps.version.outputs.version-major }}
@@ -225,7 +225,7 @@ jobs:
             - if: ${{ true }}
               uses: docker://ghcr.io/buildpacks/actions/registry/request-add-entry:4.0.1
               with:
-                address: docker.io/paketobuildpacks/rustup@${{ steps.package.outputs.digest }}
+                address: docker.io/paketocommunity/rustup@${{ steps.package.outputs.digest }}
                 id: paketo-community/rustup
                 token: ${{ secrets.PAKETO_BOT_GITHUB_TOKEN }}
                 version: ${{ steps.version.outputs.version }}
