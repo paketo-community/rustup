@@ -220,12 +220,25 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			ctx.Buildpack.Metadata = map[string]interface{}{
 				"configurations": []map[string]interface{}{},
 			}
-			ctx.StackID = libpak.TinyStackID
+			ctx.StackID = libpak.BionicTinyStackID
 
 			cr, err := libpak.NewConfigurationResolver(ctx.Buildpack, nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			target := rustup.AdditionalTarget(cr, libpak.TinyStackID)
+			target := rustup.AdditionalTarget(cr, libpak.BionicTinyStackID)
+			Expect(target).To(HaveSuffix("-unknown-linux-musl"))
+		})
+
+		it("picks musl for static stack", func() {
+			ctx.Buildpack.Metadata = map[string]interface{}{
+				"configurations": []map[string]interface{}{},
+			}
+			ctx.StackID = libpak.JammyStaticStackID
+
+			cr, err := libpak.NewConfigurationResolver(ctx.Buildpack, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			target := rustup.AdditionalTarget(cr, libpak.JammyStaticStackID)
 			Expect(target).To(HaveSuffix("-unknown-linux-musl"))
 		})
 	})
