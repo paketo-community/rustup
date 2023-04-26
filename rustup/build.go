@@ -120,7 +120,7 @@ func AdditionalTarget(cr libpak.ConfigurationResolver, stack string) string {
 	}
 
 	libc := "gnu"
-	if stack == libpak.TinyStackID {
+	if libpak.IsTinyStack(stack) || libpak.IsStaticStack(stack) {
 		libc = "musl"
 	}
 
