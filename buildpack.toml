@@ -73,7 +73,9 @@ api = "0.7"
     name = "Rustup (GNU libc)"
     purl = "pkg:generic/rustup@1.26.0"
     sha256 = "0b2f6c8f85a3d02fde2efc0ced4657869d73fccfce59defb4e8d29233116e6db"
-    stacks = ["io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*"]
+    source = "https://github.com/rust-lang/rustup/archive/refs/tags/1.26.0.tar.gz"
+    source_sha256 = "6f20ff98f2f1dbde6886f8d133fe0d7aed24bc76c670ea1fca18eb33baadd808"
+    stacks = ["*"]
     uri = "https://static.rust-lang.org/rustup/archive/1.26.0/x86_64-unknown-linux-gnu/rustup-init"
     version = "1.26.0"
 
@@ -91,7 +93,9 @@ api = "0.7"
     name = "Rustup (musl libc)"
     purl = "pkg:generic/rustup@1.26.0"
     sha256 = "7aa9e2a380a9958fc1fc426a3323209b2c86181c6816640979580f62ff7d48d4"
-    stacks = ["io.buildpacks.stacks.bionic", "io.paketo.stacks.tiny", "*"]
+    source = "https://github.com/rust-lang/rustup/archive/refs/tags/1.26.0.tar.gz"
+    source_sha256 = "6f20ff98f2f1dbde6886f8d133fe0d7aed24bc76c670ea1fca18eb33baadd808"
+    stacks = ["*"]
     uri = "https://static.rust-lang.org/rustup/archive/1.26.0/x86_64-unknown-linux-musl/rustup-init"
     version = "1.26.0"
 
