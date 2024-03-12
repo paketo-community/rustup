@@ -91,7 +91,7 @@ api = "0.7"
     cpes = ["cpe:2.3:a:rust:rustup:1.27.0:*:*:*:*:*:*:*"]
     id = "rustup-init-musl"
     name = "Rustup (musl libc)"
-    purl = "pkg:generic/rustup@1.27.0"
+    purl = "pkg:generic/rustup@1.27.0?arch=amd64"
     sha256 = "b9d84cbba1ed29d11c534406a1839d64274d29805041e0e096d5293ae6390dd0"
     source = "https://github.com/rust-lang/rustup/archive/refs/tags/1.27.0.tar.gz"
     source-sha256 = "3d331ab97d75b03a1cc2b36b2f26cd0a16d681b79677512603f2262991950ad1"
