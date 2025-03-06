@@ -68,16 +68,16 @@ api = "0.7"
     name = "BP_RUSTUP_INIT_LIBC"
 
   [[metadata.dependencies]]
-    cpes = ["cpe:2.3:a:rust:rustup:1.28.0:*:*:*:*:*:*:*"]
+    cpes = ["cpe:2.3:a:rust:rustup:1.28.1:*:*:*:*:*:*:*"]
     id = "rustup-init-gnu"
     name = "Rustup (GNU libc)"
-    purl = "pkg:generic/rustup@1.28.0?arch=amd64"
-    sha256 = "c8d03f559a2335693379e1d3eaee76622b2a6580807e63bcd61faea709b9f664"
-    source = "https://github.com/rust-lang/rustup/archive/refs/tags/1.28.0.tar.gz"
-    source-sha256 = "b5172faabef6778322c14f10e96261f0663f8896c7be62109083d57db89a052c"
+    purl = "pkg:generic/rustup@1.28.1?arch=amd64"
+    sha256 = "a3339fb004c3d0bb9862ba0bce001861fe5cbde9c10d16591eb3f39ee6cd3e7f"
+    source = "https://github.com/rust-lang/rustup/archive/refs/tags/1.28.1.tar.gz"
+    source-sha256 = "2def2f9a0a4a21c80f862c0797c2d76e765e0e7237e1e41f28324722ab912bac"
     stacks = ["*"]
-    uri = "https://static.rust-lang.org/rustup/archive/1.28.0/x86_64-unknown-linux-gnu/rustup-init"
-    version = "1.28.0"
+    uri = "https://static.rust-lang.org/rustup/archive/1.28.1/x86_64-unknown-linux-gnu/rustup-init"
+    version = "1.28.1"
 
     [[metadata.dependencies.licenses]]
       type = "Apache-2.0"
