@@ -18,6 +18,7 @@ package rustup
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,6 +31,18 @@ import (
 	"github.com/paketo-buildpacks/libpak/sbom"
 	"github.com/paketo-buildpacks/libpak/sherpa"
 )
+
+// rustupCheckUpdatesAvailableExitCode is the exit code returned by `rustup check`
+// when one or more updates are available. Prior to rustup 1.29.0 `rustup check`
+// always exited with code 0, regardless of whether updates were available.
+// See https://github.com/rust-lang/rustup/releases/tag/1.29.0.
+const rustupCheckUpdatesAvailableExitCode = 100
+
+// exitCoder is implemented by errors that expose a process exit code, such as
+// *exec.ExitError.
+type exitCoder interface {
+	ExitCode() int
+}
 
 // Rust will run `rustup` from the PATH to install a given toolchain
 type Rust struct {
@@ -72,16 +85,11 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	r.LayerContributor.Logger = r.Logger
 
 	// add `rustup check` to expected metadata if upstream rust changes, it won't match the layer metadata
-	buf := bytes.Buffer{}
-	if err := r.Executor.Execute(effect.Execution{
-		Command: "rustup",
-		Args:    []string{"check"},
-		Stdout:  &buf,
-		Stderr:  &buf,
-	}); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to run `rustup check`: %s\n%w", buf.String(), err)
+	installed, err := r.checkForUpdates()
+	if err != nil {
+		return libcnb.Layer{}, err
 	}
-	r.LayerContributor.ExpectedMetadata.(map[string]interface{})["installed"] = strings.TrimSpace(buf.String())
+	r.LayerContributor.ExpectedMetadata.(map[string]interface{})["installed"] = installed
 
 	// add hash of rust toolchain file (rust-toolchain.toml or rust-toolchain) so it re-runs if that file changes
 	if hash, err := sherpa.NewFileListingHash(r.ToolchainFile); err != nil {
@@ -90,7 +98,7 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 		r.LayerContributor.ExpectedMetadata.(map[string]interface{})["rust-toolchain"] = hash
 	}
 
-	layer, err := r.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
+	layer, err = r.LayerContributor.Contribute(layer, func() (libcnb.Layer, error) {
 		r.Logger.Body("Installing Rust")
 
 		// This layer doesn't actually contain files, they write to RUSTUP_HOME, because Rustup is installing them.
@@ -170,16 +178,11 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 	}
 
 	// update metadata
-	buf = bytes.Buffer{}
-	if err := r.Executor.Execute(effect.Execution{
-		Command: "rustup",
-		Args:    []string{"check"},
-		Stdout:  &buf,
-		Stderr:  &buf,
-	}); err != nil {
-		return libcnb.Layer{}, fmt.Errorf("unable to run `rustup check`: %s\n%w", buf.String(), err)
+	installed, err = r.checkForUpdates()
+	if err != nil {
+		return libcnb.Layer{}, err
 	}
-	layer.Metadata["installed"] = strings.TrimSpace(buf.String())
+	layer.Metadata["installed"] = installed
 
 	if hash, err := sherpa.NewFileListingHash(r.ToolchainFile); err != nil {
 		return libcnb.Layer{}, fmt.Errorf("unable to hash: %s\n%w", r.ToolchainFile, err)
@@ -192,6 +195,29 @@ func (r Rust) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 
 func (r Rust) Name() string {
 	return r.LayerContributor.Name
+}
+
+// checkForUpdates runs `rustup check` and returns its combined output. This
+// output is used as layer metadata so that a new upstream Rust release
+// invalidates the cached layer and triggers a reinstall. Starting with rustup
+// 1.29.0, `rustup check` exits with code 100 when updates are available, so that
+// specific exit code is treated as success rather than a failure.
+func (r Rust) checkForUpdates() (string, error) {
+	buf := bytes.Buffer{}
+	err := r.Executor.Execute(effect.Execution{
+		Command: "rustup",
+		Args:    []string{"check"},
+		Stdout:  &buf,
+		Stderr:  &buf,
+	})
+	if err != nil {
+		var ec exitCoder
+		if !errors.As(err, &ec) || ec.ExitCode() != rustupCheckUpdatesAvailableExitCode {
+			return "", fmt.Errorf("unable to run `rustup check`: %s\n%w", buf.String(), err)
+		}
+	}
+
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func (r Rust) installRust(layer libcnb.Layer) error {
