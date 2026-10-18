@@ -17,6 +17,7 @@
 package rustup_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,6 +32,20 @@ import (
 	"github.com/paketo-buildpacks/libpak/effect"
 	"github.com/paketo-buildpacks/libpak/effect/mocks"
 )
+
+// fakeExitError is an error that reports a process exit code, mirroring the
+// behavior of *exec.ExitError returned when a command exits non-zero.
+type fakeExitError struct {
+	code int
+}
+
+func (e fakeExitError) Error() string {
+	return fmt.Sprintf("exit status %d", e.code)
+}
+
+func (e fakeExitError) ExitCode() int {
+	return e.code
+}
 
 func testRust(t *testing.T, context spec.G, it spec.S) {
 	var (
@@ -274,5 +289,71 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 		Expect(execVer.Args).To(Equal([]string{"--version"}))
 
 		Expect(layer.SBOMPath(libcnb.SyftJSON)).To(BeARegularFile())
+	})
+
+	it("contributes rust when an update is available", func() {
+		layer, err := ctx.Layers.Layer("test-layer")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Starting with rustup 1.29.0, `rustup check` exits with code 100 when an
+		// update is available. That must not fail the build, it should just
+		// invalidate the layer cache and cause rust to be reinstalled.
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Command == "rustup" && len(ex.Args) == 1 && ex.Args[0] == "check"
+		})).Return(fakeExitError{100}).Run(func(args mock.Arguments) {
+			ex := args.Get(0).(effect.Execution)
+			_, err := ex.Stdout.Write([]byte("stable-x86_64-unknown-linux-gnu - update available: 1.98.1 -> 1.99.0\n"))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Args[0] == "--version" && ex.Command == "rustc"
+		})).Return(func(ex effect.Execution) error {
+			_, err := ex.Stdout.Write([]byte("rustc 1.99.0 (b940084d7 2026-09-28)\n"))
+			Expect(err).ToNot(HaveOccurred())
+			return nil
+		})
+
+		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
+			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+		})
+
+		r := rustup.NewRust("minimal", "stable", "", "", false, false)
+		r.Executor = executor
+
+		layer, err = r.Contribute(layer)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(layer.LayerTypes.Build).To(BeTrue())
+		Expect(layer.LayerTypes.Cache).To(BeTrue())
+		Expect(layer.LayerTypes.Launch).To(BeFalse())
+
+		execCheck := executor.Calls[0].Arguments[0].(effect.Execution)
+		Expect(execCheck.Command).To(Equal("rustup"))
+		Expect(execCheck.Args).To(Equal([]string{"check"}))
+
+		execInstall := executor.Calls[1].Arguments[0].(effect.Execution)
+		Expect(execInstall.Command).To(Equal("rustup"))
+		Expect(execInstall.Args).To(Equal([]string{"-q", "toolchain", "install", "--profile=minimal", "stable"}))
+		Expect(execInstall.Dir).To(Equal(layer.Path))
+
+		Expect(layer.SBOMPath(libcnb.SyftJSON)).To(BeARegularFile())
+	})
+
+	it("fails when `rustup check` fails", func() {
+		layer, err := ctx.Layers.Layer("test-layer")
+		Expect(err).NotTo(HaveOccurred())
+
+		executor.On("Execute", mock.MatchedBy(func(ex effect.Execution) bool {
+			return ex.Command == "rustup" && len(ex.Args) == 1 && ex.Args[0] == "check"
+		})).Return(fakeExitError{1})
+
+		r := rustup.NewRust("minimal", "stable", "", "", false, false)
+		r.Executor = executor
+
+		_, err = r.Contribute(layer)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring("unable to run `rustup check`")))
 	})
 }
