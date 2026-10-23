@@ -88,7 +88,7 @@ func (r Rustup) Contribute(layer libcnb.Layer) (libcnb.Layer, error) {
 			},
 			Dir:    layer.Path,
 			Stdout: bard.NewWriter(writer, bard.WithIndent(3)),
-			Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+			Stderr: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
 		}); err != nil {
 			return libcnb.Layer{}, fmt.Errorf("unable to run rustup-init\n%w", err)
 		}

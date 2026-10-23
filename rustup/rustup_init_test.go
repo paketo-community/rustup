@@ -17,7 +17,6 @@
 package rustup_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +39,7 @@ func testRustupInit(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		ctx.Layers.Path, err = ioutil.TempDir("", "rustup-layers")
+		ctx.Layers.Path, err = os.MkdirTemp("", "rustup-layers")
 		Expect(err).NotTo(HaveOccurred())
 	})
 

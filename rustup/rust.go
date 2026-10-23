@@ -231,8 +231,8 @@ func (r Rust) installRust(layer libcnb.Layer) error {
 			r.Toolchain,
 		},
 		Dir:    layer.Path,
-		Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
-		Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stdout: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stderr: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
 	}); err != nil {
 		return fmt.Errorf("unable to run `rustup toolchain install`\n%w", err)
 	}
@@ -252,8 +252,8 @@ func (r Rust) installAdditionalTarget(layer libcnb.Layer) error {
 				r.Target,
 			},
 			Dir:    layer.Path,
-			Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
-			Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+			Stdout: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
+			Stderr: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
 		}); err != nil {
 			return fmt.Errorf("unable to run `rustup target add`\n%w", err)
 		}
@@ -271,8 +271,8 @@ func (r Rust) installFromRustToolChainFile(layer libcnb.Layer) error {
 			r.Toolchain,
 		},
 		Dir:    layer.Path,
-		Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
-		Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stdout: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stderr: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
 	}); err != nil {
 		return fmt.Errorf("unable to run `rustup default`\n%w", err)
 	}
@@ -286,8 +286,8 @@ func (r Rust) installFromRustToolChainFile(layer libcnb.Layer) error {
 			"show",
 		},
 		Dir:    layer.Path,
-		Stdout: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
-		Stderr: bard.NewWriter(r.Logger.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stdout: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
+		Stderr: bard.NewWriter(r.Logger.InfoWriter(), bard.WithIndent(3)),
 	}); err != nil {
 		return fmt.Errorf("unable to run `rustup show`\n%w", err)
 	}
