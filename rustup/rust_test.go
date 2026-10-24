@@ -18,7 +18,6 @@ package rustup_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -60,17 +59,17 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		ctx.Layers.Path, err = ioutil.TempDir("", "rust-layers")
+		ctx.Layers.Path, err = os.MkdirTemp("", "rust-layers")
 		Expect(err).NotTo(HaveOccurred())
 
-		appPath, err = ioutil.TempDir("", "app-dir")
+		appPath, err = os.MkdirTemp("", "app-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		cargoHome, err = ioutil.TempDir("", "cargoHome")
+		cargoHome, err = os.MkdirTemp("", "cargoHome")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.MkdirAll(filepath.Join(cargoHome, "bin"), 0755))
 		// we intentionally do not create a fake rustfmt here so we can test that it's OK if this file does not exist
-		Expect(ioutil.WriteFile(filepath.Join(cargoHome, "bin", "cargo-fmt"), nil, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(cargoHome, "bin", "cargo-fmt"), nil, 0644)).To(Succeed())
 
 		Expect(os.Setenv("CARGO_HOME", cargoHome)).To(Succeed())
 
@@ -97,7 +96,7 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		r := rustup.NewRust("minimal", "1.2.3", "", "", false, false)
@@ -140,7 +139,7 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		r := rustup.NewRust("minimal", "1.2.3", "foo", "", false, false)
@@ -191,7 +190,7 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		r := rustup.NewRust("minimal", "1.2.3", "foo", toolchainFilePath, false, false)
@@ -247,7 +246,7 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		r := rustup.NewRust("minimal", "1.2.3", "foo", toolchainFilePath, true, true)
@@ -316,7 +315,7 @@ func testRust(t *testing.T, context spec.G, it spec.S) {
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			Expect(os.MkdirAll(layer.Path, 0755)).To(Succeed())
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		r := rustup.NewRust("minimal", "stable", "", "", false, false)

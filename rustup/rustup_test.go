@@ -17,7 +17,6 @@
 package rustup_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -44,12 +43,12 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 	it.Before(func() {
 		var err error
 
-		ctx.Layers.Path, err = ioutil.TempDir("", "rust-layers")
+		ctx.Layers.Path, err = os.MkdirTemp("", "rust-layers")
 		Expect(err).NotTo(HaveOccurred())
 
-		cargoHome, err = ioutil.TempDir("", "cargoHome")
+		cargoHome, err = os.MkdirTemp("", "cargoHome")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ioutil.WriteFile(filepath.Join(cargoHome, "env"), nil, 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(cargoHome, "env"), nil, 0644)).To(Succeed())
 
 		Expect(os.Setenv("CARGO_HOME", cargoHome)).To(Succeed())
 
@@ -74,7 +73,7 @@ func testRustup(t *testing.T, context spec.G, it spec.S) {
 		})
 
 		executor.On("Execute", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-			Expect(ioutil.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(layer.Path, "env"), nil, 0644)).To(Succeed())
 		})
 
 		expectedArgs := []string{"-q", "-y", "--no-modify-path", "--default-toolchain=none", "--profile=minimal"}
